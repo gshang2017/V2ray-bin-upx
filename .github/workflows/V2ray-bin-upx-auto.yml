@@ -1,0 +1,56 @@
+name: V2ray-bin-upx-auto-build
+
+on:
+  push:
+    paths:
+    - 'v2ray_update_upx.sh'
+    - '.github/workflows/V2ray-bin-upx-auto.yml'
+  schedule:
+    - cron: '0 22 * * *'
+  workflow_dispatch:
+
+jobs:
+  job1:
+    name: V2ray-build
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+
+      - name: 'Set version env'
+        run: |
+          echo "V2RAY_VER=$(curl --silent "https://api.github.com/repos/v2fly/v2ray-core/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' )" >> $GITHUB_ENV
+
+      - name: 'upx-V2ray-bin'
+        run: |
+          wget https://github.com/upx/upx-automatic-builds/raw/devel-20200906-107cd48-travis/amd64-linux-gcc-9-release/upx-git-107cd48c9307.out
+          sudo mv upx-git-107cd48c9307.out /usr/bin/upx
+          sudo chmod +x /usr/bin/upx
+          sudo chmod +x /home/runner/work/V2ray-bin-upx/V2ray-bin-upx/v2ray_update_upx.sh
+          sudo /home/runner/work/V2ray-bin-upx/V2ray-bin-upx/v2ray_update_upx.sh
+
+      - name: Create Release
+        continue-on-error: true
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.V2RAY_VER }}
+          release_name: ${{ env.V2RAY_VER }}
+          body: |
+            V2ray-bin-upx: ${{ env.V2RAY_VER }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        continue-on-error: true
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: /tmp/v2ray-linux-arm32-v5-upx.zip
+          asset_name: v2ray-linux-arm32-v5-upx.zip
+          asset_content_type: application/zip
