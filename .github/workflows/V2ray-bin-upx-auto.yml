@@ -23,8 +23,8 @@ jobs:
 
       - name: 'upx-V2ray-bin'
         run: |
-          wget https://github.com/upx/upx-automatic-builds/raw/devel-20200906-107cd48-travis/amd64-linux-gcc-9-release/upx-git-107cd48c9307.out
-          sudo mv upx-git-107cd48c9307.out /usr/bin/upx
+          wget https://github.com/upx/upx-automatic-builds/raw/devel-20201203-3f30e41-travis/amd64-linux-gcc-9-release/upx-git-3f30e411b07b.out
+          sudo mv upx-git-3f30e411b07b.out /usr/bin/upx
           sudo chmod +x /usr/bin/upx
           sudo chmod +x /home/runner/work/V2ray-bin-upx/V2ray-bin-upx/v2ray_update_upx.sh
           sudo /home/runner/work/V2ray-bin-upx/V2ray-bin-upx/v2ray_update_upx.sh
