@@ -11,8 +11,11 @@ if [ -n "$lastver" ]; then
             unzip /tmp/v2ray_update.zip -d /tmp/v2ray_update
             #压缩v2ray v2ctl
             chmod 777 /tmp/v2ray_update/v2ray
-            chmod 777 /tmp/v2ray_update/v2ctl
-            upx  --lzma --ultra-brute /tmp/v2ray_update/v2ray /tmp/v2ray_update/v2ctl
+            upx  --lzma --ultra-brute /tmp/v2ray_update/v2ray
+            if [ -f "/tmp/v2ray_update/v2ctl" ]; then
+              chmod 777 /tmp/v2ray_update/v2ctl
+              upx  --lzma --ultra-brute /tmp/v2ray_update/v2ctl
+            fi
             #重新打包
             cd /tmp/v2ray_update
             zip /tmp/v2ray-linux-arm32-v5-upx.zip -r ./*

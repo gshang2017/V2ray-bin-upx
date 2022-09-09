@@ -11,14 +11,22 @@ V2RAY_CONFIG_FILE="/koolshare/ss/v2ray.json"
 
 get_latest_version(){
 	echo_date "检测V2Ray最新版本..."
-    lastver=$(curl --silent "https://api.github.com/repos/gshang2017/V2ray-bin-upx/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | sed 's/v//g' )
+	if [ $(v2ray -version 2>/dev/null | head -n 1 | cut -d " " -f2 | sed 's/v//g' | cut -b 1) -lt 5 ] 2>/dev/null; then
+		 V2RAY_VERSION_OLD="-version"
+	else
+		 V2RAY_VERSION_OLD="version"
+	fi
+	lastver=$(curl --silent "https://api.github.com/repos/gshang2017/V2ray-bin-upx/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | sed 's/v//g' )
 	if [ -n "$lastver"  ];then
 		echo_date "检测到V2Ray最新版本：v$lastver"
-		if [ ! -f "/koolshare/bin/v2ray" -o ! -f "/koolshare/bin/v2ctl" ];then
+		if [ "$V2RAY_VERSION_OLD" == "-version" ] && [ ! -f "/koolshare/bin/v2ray" -o ! -f "/koolshare/bin/v2ctl" ];then
+			echo_date "v2ray安装文件丢失！重新下载！"
+			oldver="0"
+		elif [ "$V2RAY_VERSION_OLD" == "version" ] && [ ! -f "/koolshare/bin/v2ray" ];then
 			echo_date "v2ray安装文件丢失！重新下载！"
 			oldver="0"
 		else
-			oldver=`v2ray -version 2>/dev/null | head -n 1 | cut -d " " -f2 | sed 's/v//g'` || 0
+			oldver=`v2ray $V2RAY_VERSION_OLD 2>/dev/null | head -n 1 | cut -d " " -f2 | sed 's/v//g'` || 0
 			echo_date "当前已安装V2Ray版本：v$oldver"
 		fi
 		COMP=`versioncmp $oldver $lastver`
@@ -26,8 +34,8 @@ get_latest_version(){
 			[ "$oldver" != "0" ] && echo_date "V2Ray已安装版本号低于最新版本，开始更新程序..."
 			update_now v$lastver
 		else
-			V2RAY_LOCAL_VER=`/koolshare/bin/v2ray -version 2>/dev/null | head -n 1 | cut -d " " -f2`
-			V2RAY_LOCAL_DATE=`/koolshare/bin/v2ray -version 2>/dev/null | head -n 1 | cut -d " " -f4`
+			V2RAY_LOCAL_VER=`/koolshare/bin/v2ray $V2RAY_VERSION_OLD 2>/dev/null | head -n 1 | cut -d " " -f2`
+			V2RAY_LOCAL_DATE=`/koolshare/bin/v2ray $V2RAY_VERSION_OLD 2>/dev/null | head -n 1 | cut -d " " -f4`
 			[ -n "$V2RAY_LOCAL_VER" ] && dbus set ss_basic_v2ray_version="$V2RAY_LOCAL_VER"
 			[ -n "$V2RAY_LOCAL_DATE" ] && dbus set ss_basic_v2ray_date="$V2RAY_LOCAL_DATE"
 			echo_date "V2Ray已安装版本已经是最新，退出更新程序!"
@@ -89,14 +97,21 @@ move_binary(){
 	echo_date "开始替换v2ray二进制文件... "
 	unzip -q /tmp/v2ray_update.zip -d /tmp/v2ray
 	mv /tmp/v2ray/v2ray /koolshare/bin/v2ray
-	mv /tmp/v2ray/v2ctl /koolshare/bin/v2ctl
+	if [ -f "/tmp/v2ray/v2ctl" ]; then
+	  mv /tmp/v2ray/v2ctl /koolshare/bin/v2ctl
+	fi
 	mv /tmp/v2ray/geosite.dat /koolshare/bin/geosite.dat
 	mv /tmp/v2ray/geoip.dat /koolshare/bin/geoip.dat
 	rm -rf /tmp/v2ray
 	rm -rf /tmp/v2ray_update.zip
 	chmod +x /koolshare/bin/v2*
-	V2RAY_LOCAL_VER=`/koolshare/bin/v2ray -version 2>/dev/null | head -n 1 | cut -d " " -f2`
-	V2RAY_LOCAL_DATE=`/koolshare/bin/v2ray -version 2>/dev/null | head -n 1 | cut -d " " -f5`
+	if [ $(v2ray -version 2>/dev/null | head -n 1 | cut -d " " -f2 | sed 's/v//g' | cut -b 1) -lt 5 ] 2>/dev/null; then
+		 V2RAY_VERSION_NEW="-version"
+	else
+		 V2RAY_VERSION_NEW="version"
+	fi
+	V2RAY_LOCAL_VER=`/koolshare/bin/v2ray $V2RAY_VERSION_NEW 2>/dev/null | head -n 1 | cut -d " " -f2`
+	V2RAY_LOCAL_DATE=`/koolshare/bin/v2ray $V2RAY_VERSION_NEW 2>/dev/null | head -n 1 | cut -d " " -f5`
 	[ -n "$V2RAY_LOCAL_VER" ] && dbus set ss_basic_v2ray_version="$V2RAY_LOCAL_VER"
 	[ -n "$V2RAY_LOCAL_DATE" ] && dbus set ss_basic_v2ray_date="$V2RAY_LOCAL_DATE"
 	echo_date "v2ray二进制文件替换成功... "
@@ -106,8 +121,11 @@ start_v2ray(){
 	echo_date "开启v2ray进程... "
 	cd /koolshare/bin
 	export GOGC=30
-	v2ray --config=/koolshare/ss/v2ray.json >/dev/null 2>&1 &
-
+	if [ $(v2ray -version 2>/dev/null | head -n 1 | cut -d " " -f2 | sed 's/v//g' | cut -b 1) -lt 5 ] 2>/dev/null; then
+		 v2ray -config=/koolshare/ss/v2ray.json >/dev/null 2>&1 &
+	else
+		 v2ray run -config=/koolshare/ss/v2ray.json >/dev/null 2>&1 &
+	fi
 	local i=10
 	until [ -n "$V2PID" ]
 	do
