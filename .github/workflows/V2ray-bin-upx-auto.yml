@@ -5,8 +5,6 @@ on:
     paths:
     - 'v2ray_update_upx.sh'
     - '.github/workflows/V2ray-bin-upx-auto.yml'
-  schedule:
-    - cron: '0 22 * * *'
   workflow_dispatch:
 
 jobs:
@@ -23,8 +21,9 @@ jobs:
 
       - name: 'upx-V2ray-bin'
         run: |
-          wget https://github.com/upx/upx-automatic-builds/raw/devel-20201203-3f30e41-travis/amd64-linux-gcc-9-release/upx-git-3f30e411b07b.out
-          sudo mv upx-git-3f30e411b07b.out /usr/bin/upx
+          wget https://github.com/upx/upx/releases/download/v4.0.2/upx-4.0.2-amd64_linux.tar.xz
+          sudo tar -Jxf upx-4.0.2-amd64_linux.tar.xz
+          sudo mv ./upx-4.0.2-amd64_linux/upx /usr/bin/upx
           sudo chmod +x /usr/bin/upx
           sudo chmod +x /home/runner/work/V2ray-bin-upx/V2ray-bin-upx/v2ray_update_upx.sh
           sudo /home/runner/work/V2ray-bin-upx/V2ray-bin-upx/v2ray_update_upx.sh
